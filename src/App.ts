@@ -5,6 +5,7 @@ import { Router } from 'express-serve-static-core';
 import {MongoDb} from "./db/mongo.db";
 import * as HttpStatus from 'http-status-codes';
 import {response} from "express";
+import {mongo} from "mongoose";
 // import { mountRoutes } from './routes';
 
 /**
@@ -63,6 +64,39 @@ export class App {
             mongo.close();
         });
 
+        router.get('/users/:id',async (req, res) => {
+            let userId = req.params.id;
+            if(isNaN(userId) || userId.includes(".")|| userId.includes("-")){
+                res.json({"message":"invalid user ID"});
+                res.statusCode = HttpStatus.OK;
+                return
+            }
+
+            const mongo = new MongoDb();
+            await mongo.connect();
+            const db = mongo.getDb("master");
+            db.collection('users', (error, collection) => {
+                if (error) {
+                    res.json(error);
+                    res.statusCode = HttpStatus.BAD_REQUEST;
+
+                    return;
+                }
+                collection.findOne({"id": Number(userId)}, function (err, result) {
+                    if(err){
+                        res.json(err);
+                        res.statusCode = HttpStatus.BAD_REQUEST;
+
+                        return;
+                    }
+                    res.json(result)
+                    res.statusCode = HttpStatus.OK
+
+                    return
+                })
+            });
+        })
+
         router.get('/users/:id/posts',async (req, res) => {
             let userId = req.params.id;
             if(isNaN(userId) || userId.includes(".")|| userId.includes("-")){
@@ -111,6 +145,42 @@ export class App {
 
             mongo.close();
 
+        });
+
+        router.patch('/users/:id',async (req, res) => {
+            console.log(req.params.id)
+            console.log(req.body)
+
+            let userId = req.params.id;
+            if(isNaN(userId) || userId.includes(".")|| userId.includes("-")){
+                res.json({"message":"invalid user ID"});
+                res.statusCode = HttpStatus.OK;
+                return
+            }
+
+            const mongo = new MongoDb();
+            await mongo.connect();
+            const db = mongo.getDb("master");
+            db.collection('users', (error, collection) => {
+                if (error) {
+                    res.json(error);
+                    res.statusCode = HttpStatus.BAD_REQUEST;
+
+                    return;
+                }
+                collection.findOneAndUpdate({"id": Number(userId)},{$set:req.body}, function (err, result) {
+                    console.log(err)
+                    if (err) {
+                        res.json(err);
+                        res.statusCode = HttpStatus.BAD_REQUEST;
+
+                        return;
+                    }
+                    res.json({message:"User Updated"});
+                    res.statusCode = HttpStatus.OK;
+                    return
+                })
+            })
         });
     }
     // tslint:disable-next-line:prefer-function-over-method
