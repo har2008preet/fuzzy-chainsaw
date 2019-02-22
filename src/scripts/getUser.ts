@@ -26,19 +26,8 @@ async function getusers() {
             console.log("could not connect to the db");
         }
     }
-    /*db.collection('users', (error, collection) => {
-        if (error) {
-            console.log('error')
-        } else {
-            collection.insertMany(data, (err, result) => {
-                if (err) {
-                    console.log("error on insert")
-                } else {
-                    console.log("successful")
-                }
-            })
-        }
-    });*/
+
+    await mongo.close();
 }
 
 getusers();
