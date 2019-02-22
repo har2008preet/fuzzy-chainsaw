@@ -34,7 +34,14 @@ export class MongoDb {
         try {
             if (!this.client) {
                 console.info(`Connectiong to ${this.connectionString}`);
-                this.client = await MongoClient.connect(this.connectionString, {'useNewUrlParser': true});
+                var options = {
+                    reconnectTries: Number.MAX_VALUE,
+                    reconnectInterval: 1000,
+                    server: { socketOptions: { keepAlive: 1, connectTimeoutMS: 300000 } },
+                    replset: { socketOptions: { keepAlive: 1, connectTimeoutMS: 300000 } },
+                    useNewUrlParser: true
+                };
+                this.client = await MongoClient.connect(this.connectionString, options);
             }
         } catch(error) {
             console.error(error);

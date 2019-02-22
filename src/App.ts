@@ -2,7 +2,9 @@ import * as bodyParser from 'body-parser';
 import * as express from 'express';
 // tslint:disable-next-line:no-implicit-dependencies
 import { Router } from 'express-serve-static-core';
-
+import {MongoDb} from "./db/mongo.db";
+import * as HttpStatus from 'http-status-codes';
+import {response} from "express";
 // import { mountRoutes } from './routes';
 
 /**
@@ -26,13 +28,91 @@ export class App {
         this.mountTestRoute(router);
         // mountRoutes(router);
 
+        this.mountUserRoutes(router);
+
         this.express.use('/', router);
     }
 
-    /**
-     * tmp routes for connection testing purposes
-     *
-     */
+
+    private mountUserRoutes(router: Router): void {
+        router.get('/users',async (req, res) => {
+            const mongo = new MongoDb();
+            await mongo.connect();
+            const db = mongo.getDb("master");
+            db.collection('users', (error, collection) => {
+                if (error) {
+                    res.json(error);
+                    res.statusCode = HttpStatus.BAD_REQUEST;
+
+                    return;
+                }
+
+                collection
+                    .find()
+                    .toArray((arrayError, result) => {
+                        if (arrayError) {
+                            res.json(arrayError);
+                            res.statusCode = HttpStatus.BAD_REQUEST;
+                        }
+
+                        res.json(result);
+                        res.statusCode = HttpStatus.OK;
+                    });
+            });
+
+            mongo.close();
+        });
+
+        router.get('/users/:id/posts',async (req, res) => {
+            let userId = req.params.id;
+            if(isNaN(userId) || userId.includes(".")|| userId.includes("-")){
+                res.json({"message":"invalid user ID"});
+                res.statusCode = HttpStatus.OK;
+                return
+            }
+            const mongo = new MongoDb();
+            await mongo.connect();
+
+            let dbName = "user_"+userId
+
+            const db = mongo.getDb(dbName);
+
+            db.collection('posts', async (error, collection) => {
+                if (error) {
+                    res.json(error);
+                    res.statusCode = HttpStatus.BAD_REQUEST;
+
+                    return;
+                }
+
+                collection
+                    .find()
+                    .toArray((arrayError, result) => {
+                        if (arrayError) {
+                            res.json(arrayError);
+                            res.statusCode = HttpStatus.BAD_REQUEST;
+
+                            return;
+                        }
+
+                        console.log("Result: ", result)
+                        if(result.length==0){
+                            res.json({"message":"either user does not exists or does not have any posts"});
+                            res.statusCode = HttpStatus.OK;
+                            return
+                        }else {
+                            res.json(result);
+                            res.statusCode = HttpStatus.OK;
+                            return
+                        }
+
+                    });
+            });
+
+            mongo.close();
+
+        });
+    }
     // tslint:disable-next-line:prefer-function-over-method
     private mountTestRoute(router: Router): void {
         router.get('/', (req, res) => {
