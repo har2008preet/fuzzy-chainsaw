@@ -53,6 +53,8 @@ async function main() {
             console.log("could not connect to the db");
         }
 
+        await mongo.close();
+
 
     }
 

@@ -5,14 +5,20 @@ import { Router } from 'express-serve-static-core';
 import {MongoDb} from "./db/mongo.db";
 import * as HttpStatus from 'http-status-codes';
 import {response} from "express";
-import {mongo} from "mongoose";
+import {mongo, Schema} from "mongoose";
+
+var fs = require('fs');
+// var Schema = mongoose.Schema;
 // import { mountRoutes } from './routes';
+var multer = require('multer');
 
 /**
  * class for defining the routes and used
  *
  * @export
  */
+var upload;
+
 export class App {
     public express;
 
@@ -25,6 +31,13 @@ export class App {
          }));
 
         this.express.use(bodyParser.json());
+
+        upload = multer({dest: './uploads',
+            rename: function(fieldname, filename){
+                return filename
+            },
+        });
+
 
         this.mountTestRoute(router);
         // mountRoutes(router);
@@ -177,6 +190,83 @@ export class App {
                         return;
                     }
                     res.json({message:"User Updated"});
+                    res.statusCode = HttpStatus.OK;
+                    return
+                })
+            })
+        });
+
+        router.get('/users/:id/avatar', async (req, res)=> {
+
+            let userId = req.params.id;
+            if(isNaN(userId) || userId.includes(".")|| userId.includes("-")){
+                res.json({"message":"invalid user ID"});
+                res.statusCode = HttpStatus.OK;
+                return
+            }
+
+            const mongo = new MongoDb();
+            await mongo.connect();
+            const db = mongo.getDb("master");
+            db.collection('users', (error, collection) => {
+                if (error) {
+                    res.json(error);
+                    res.statusCode = HttpStatus.BAD_REQUEST;
+
+                    return;
+                }
+                collection.findOne({"id": Number(userId)}, async function (err, result) {
+                    if (err) {
+                        res.json(err);
+                        res.statusCode = HttpStatus.BAD_REQUEST;
+
+                        return;
+                    }
+
+                    if(result.avatar == null){
+                        res.json({message:"User does not have image"});
+                        res.statusCode = HttpStatus.OK;
+                        return
+                    }
+                    res.status(200).contentType("image/png").send(Buffer.from(result.avatar.toString('base64'), 'base64'))
+                    return
+                })
+            })
+        })
+        router.post('/users/:id/avatar',upload.single('userPhoto'), async function(req: any,res){
+            // var newItem = new Item();
+
+            let userId = req.params.id;
+            if(isNaN(userId) || userId.includes(".")|| userId.includes("-")){
+                res.json({"message":"invalid user ID"});
+                res.statusCode = HttpStatus.OK;
+                return
+            }
+
+            let data = fs.readFileSync(req.file.path);
+
+            // newItem.img.contentType = 'image/png';
+            // newItem.save();
+
+            const mongo = new MongoDb();
+            await mongo.connect();
+            const db = mongo.getDb("master");
+            db.collection('users', (error, collection) => {
+                if (error) {
+                    res.json(error);
+                    res.statusCode = HttpStatus.BAD_REQUEST;
+
+                    return;
+                }
+                collection.findOneAndUpdate({"id": Number(userId)},{$set:{avatar: data}}, function (err, result) {
+                    console.log(err)
+                    if (err) {
+                        res.json(err);
+                        res.statusCode = HttpStatus.BAD_REQUEST;
+
+                        return;
+                    }
+                    res.json({message:"User Image Uploaded"});
                     res.statusCode = HttpStatus.OK;
                     return
                 })

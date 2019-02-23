@@ -15,6 +15,7 @@ async function getusers() {
         console.log(element)
         console.log("--------------------------------------------------")
         if (db) {
+
             await db.collection('users').insertOne(element, (err, result) => {
                     if (err) {
                         console.log("error with user id ", element.id + ", error: "+ err)

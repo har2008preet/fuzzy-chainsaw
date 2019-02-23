@@ -31,4 +31,6 @@ GET ``/users/:id`` : to get details of user with id ``:id``
 
 PATCH ``/users/:id`` : to update user with userId ``:id``. The updated json should be supplied in request body.
 
- 
+POST ``/users/:id/avatar`` : to post/update user's avatar, form-data key is ``userPhoto``.
+
+GET ``/users/:id/avatar`` : to see user's avatar.
